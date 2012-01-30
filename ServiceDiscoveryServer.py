@@ -28,13 +28,19 @@ class ServiceDiscoveryServer:
 
     class handler(SocketServer.BaseRequestHandler):
         def handle(self):
-            data = self.request.recv(1024)
+            buffer = ''
+            while buffer == '' or (buffer[0] == '{' and '}' not in buffer) or len(buffer)>1024:
+                buffer+= self.request.recv(1024)
+                #data = self.request[0].strip()
+
             try:
-                request = json.loads(data)
+                request = json.loads(buffer)
                 if request['command'] == 'hello':
                     ip, port = self.server.server_address
                     answer = dict({'ip': ip, 'port': syncServerPort, 'protocol': protocolVersion})
                     self.request.send(json.dumps(answer))
+#                    socket = self.request[1]
+#                    socket.sendto(json.dumps(answer), self.client_address)
             except:
                 pass
 
