@@ -1,10 +1,16 @@
+*Service Discovery Protocol*
+==
+{"command":"hello","protocol":"1.0"}
+Пример ответа:
+{"ip":"192.168.0.124","port":"15346","protocol":"1.0"}
+
+*Sync Server Protocol*
 ==
 Приветствие
-{"command":"hello"}
+{"command":"hello","protocol":"1.0"}
 
 Пример ответа:
 {"answer":"hello","protocol":"1.0"}
-Отдает также версию протокола
 
 ==
 Получить список альбомов
