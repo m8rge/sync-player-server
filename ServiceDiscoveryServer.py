@@ -1,6 +1,5 @@
 import SocketServer
 import socket
-import threading
 import json
 
 class ServiceDiscoveryServer:
@@ -13,12 +12,13 @@ class ServiceDiscoveryServer:
             port+=1
 
         self.syncServerPort = syncServerPort
-        ServiceDiscoveryServer = SocketServer.UDPServer((ip, port), self.handler)
-        ServiceDiscoveryServerThread = threading.Thread(ServiceDiscoveryServer.serve_forever)
-        ServiceDiscoveryServerThread.start()
+        server = SocketServer.TCPServer((ip, port), self.handler)
+#        server = SocketServer.UDPServer((ip, port), self.handler)
+        server.serve_forever()
 
     def isOpenUdpPort(self, ip, port):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s = socket.socket()
+#        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
             s.connect((ip, int(port)))
             s.shutdown(socket.SHUT_RDWR)
@@ -28,13 +28,15 @@ class ServiceDiscoveryServer:
 
     class handler(SocketServer.BaseRequestHandler):
         def handle(self):
-            data = self.request[0].strip()
+            data = self.request.recv(1024)
             try:
                 request = json.loads(data)
                 if request['command'] == 'hello':
                     ip, port = self.server.server_address
                     answer = dict({'ip': ip, 'port': syncServerPort, 'protocol': protocolVersion})
-                    socket = self.request[1]
-                    socket.sendto(json.dumps(answer), self.client_address)
+                    self.request.send(json.dumps(answer))
             except:
                 pass
+
+if __name__ == "__main__":
+    sdServer = ServiceDiscoveryServer('127.0.0.1', 45444, 80)
