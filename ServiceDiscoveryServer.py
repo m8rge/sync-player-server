@@ -12,16 +12,17 @@ class ServiceDiscoveryServer:
 
         self.syncServerPort = syncServerPort
         server = SocketServer.UDPServer((ip, port), self.getHandlerClass(syncServerPort, self.protocolVersion))
+        print "opened {}:{}".format(ip, port)
         server.serve_forever()
 
     def isOpenUdpPort(self, ip, port):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s = socket.socket(type=socket.SOCK_DGRAM)
         try:
-            s.connect((ip, int(port)))
-            s.shutdown(socket.SHUT_RDWR)
-            return True
-        except:
+            s.bind((ip, port))
+            s.close()
             return False
+        except:
+            return True
 
     def getHandlerClass(self, syncServerPort, protocolVersion):
         class Handler(SocketServer.BaseRequestHandler):
@@ -42,4 +43,5 @@ class ServiceDiscoveryServer:
         return Handler
 
 if __name__ == "__main__":
-    sdServer = ServiceDiscoveryServer('127.0.0.1', 45444, 80)
+    import threading
+    server_thread = threading.Thread(ServiceDiscoveryServer('127.0.0.1', 45444, 80))
