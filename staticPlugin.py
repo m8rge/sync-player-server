@@ -1,6 +1,6 @@
 import pluginInterface
 
-class staticPlugin(pluginInterface):
+class staticPlugin(pluginInterface.pluginInterface):
 
     def getAlbums(self):
         return [{"id" : 1, "title": "Jorge Miloslavsky"}]

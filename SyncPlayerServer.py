@@ -2,9 +2,9 @@ import SocketServer
 import socket
 import json
 import threading
-import staticPlugin
 
-#todo: more type checking
+import staticPlugin #todo: import plugin from config
+import ServiceDiscoveryServer
 
 class SyncPlayerServer:
 
@@ -12,24 +12,25 @@ class SyncPlayerServer:
     pluginInterface = None
 
     def __init__(self, ip, port):
-        self.pluginInterface = staticPlugin.staticPlugin
+        self.pluginInterface = staticPlugin.staticPlugin()
 
+        udpPort = port
         while self.isOpenTcpPort(ip, port):
             port+=1
 
         server = self.ThreadedTCPServer((ip, port), self.getHandlerClass(self.pluginInterface))
-        server_thread = threading.Thread(server.serve_forever)
+        server_thread = threading.Thread(target=server.serve_forever)
         server_thread.start()
-        print "opened {}:{}".format(ip, port)
+        print "sps started at {}:{}".format(ip, port)
+        threading.Thread(ServiceDiscoveryServer.ServiceDiscoveryServer(ip, udpPort, port))
 
     def isOpenTcpPort(self, ip, port):
         s = socket.socket()
-        #noinspection PyBroadException
         try:
             s.bind((ip, port))
             s.close()
             return False
-        except:
+        except IOError:
             return True
 
     class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -44,8 +45,8 @@ class SyncPlayerServer:
                     while buffer == '' or (buffer.startswith('{') and '}' not in buffer) or len(buffer)>1024:
                         buffer+= self.request[0].strip()
 
-                    #noinspection PyBroadException
                     try:
+                        #todo: more type checking
                         request = json.loads(buffer)
                         if request['command'] == 'hello':
                             answer = {'answer': 'hello', 'protocol': protocolVersion}
@@ -68,30 +69,10 @@ class SyncPlayerServer:
                                 self.request.sendall(json.dumps(answer))
                                 self.request.send(song.data)
                             self.request.sendall(json.dumps({'action':'stop'}))
-                    except:
+                    except ValueError:
                         processClientData = False
         return Handler
 
 if __name__ == "__main__":
-    syncPlayerServer = SyncPlayerServer('127.0.0.1', 45444)
-
-#    class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
-#        def handle(self):
-#            data = self.request.recv(1024)
-#            cur_thread = threading.current_thread()
-#            response = "{}: {}".format(cur_thread.name, data)
-#            self.request.send(response)
-#
-#class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-#    pass
-#
-#if __name__ == "__main__":
-#    HOST, PORT = "127.0.0.1", 0
-#
-#    server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
-#    ip, port = server.server_address
-#    server_thread = threading.Thread(target=server.serve_forever)
-#    server_thread = threading.Thread(server.serve_forever)
-#    server_thread.daemon = True
-#    server_thread.start()
-#    print "opened {}:{}, thread:{}".format(HOST, PORT, server_thread.name)
+    hostname = socket.gethostbyname(socket.gethostname())
+    syncPlayerServer = SyncPlayerServer(hostname, 45444) #todo: define port
